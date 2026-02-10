@@ -8,7 +8,7 @@ image:
   repository: dulshanc/go-web-app
   pullPolicy: IfNotPresent
   #Override the image tag whose default is the chart appVersion.
-  tag: "21861803330"
+  tag: "21861866250"
 
 ingress:
   enabled: false
