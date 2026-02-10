@@ -45,5 +45,11 @@ func routes() http.Handler {
 
 func main() {
 	log.Println("Listening on :8080")
-	log.Fatal(http.ListenAndServe("0.0.0.0:8080", routes()))
+
+	srv := &http.Server{
+		Addr:    "0.0.0.0:8080",
+		Handler: routes(),
+	}
+
+	log.Fatal(srv.ListenAndServe())
 }
