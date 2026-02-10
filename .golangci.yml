@@ -12,6 +12,3 @@ linters:
     - unused
   disable:
     - gosec
-
-exclude:
-  - ".*_test\\.go:.*"
