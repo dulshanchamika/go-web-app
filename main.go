@@ -3,24 +3,47 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
-func serve(path string) http.HandlerFunc {
+// staticRoot picks a static directory that works both locally and in containers.
+// - If "/static" exists (common in Docker/k8s), use it.
+// - Otherwise use "./static" (local dev / tests).
+func staticRoot() string {
+	if info, err := os.Stat("/static"); err == nil && info.IsDir() {
+		return "/static"
+	}
+	return "static"
+}
+
+func serve(root, file string) http.HandlerFunc {
+	fullPath := filepath.Join(root, file)
 	return func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, path)
+		http.ServeFile(w, r, fullPath)
 	}
 }
 
+func routes() http.Handler {
+	root := staticRoot()
+	mux := http.NewServeMux()
+
+	// Static assets (css/js/images) under /static/...
+	mux.Handle("/static/",
+		http.StripPrefix("/static/", http.FileServer(http.Dir(root))),
+	)
+
+	// Pages
+	mux.HandleFunc("/", serve(root, "home.html"))
+	mux.HandleFunc("/home", serve(root, "home.html"))
+	mux.HandleFunc("/courses", serve(root, "courses.html"))
+	mux.HandleFunc("/about", serve(root, "about.html"))
+	mux.HandleFunc("/contact", serve(root, "contact.html"))
+
+	return mux
+}
+
 func main() {
-
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("/static"))))
-	// Serve pages
-	http.HandleFunc("/", serve("/static/home.html")) // ✅ root works now
-	http.HandleFunc("/home", serve("/static/home.html"))
-	http.HandleFunc("/courses", serve("/static/courses.html"))
-	http.HandleFunc("/about", serve("/static/about.html"))
-	http.HandleFunc("/contact", serve("/static/contact.html"))
-
 	log.Println("Listening on :8080")
-	log.Fatal(http.ListenAndServe("0.0.0.0:8080", nil))
+	log.Fatal(http.ListenAndServe("0.0.0.0:8080", routes()))
 }

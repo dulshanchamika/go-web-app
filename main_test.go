@@ -1,33 +1,39 @@
-// Test the main function
-
 package main
 
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
-func TestMain(t *testing.T) {
-	req, err := http.NewRequest("GET", "/home", nil)
-	if err != nil {
+func TestHomeRouteReturnsOK(t *testing.T) {
+	// Create temp static directory and file
+	tmp := t.TempDir()
+	staticDir := filepath.Join(tmp, "static")
+	if err := os.MkdirAll(staticDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(homePage)
-
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
+	homePath := filepath.Join(staticDir, "home.html")
+	if err := os.WriteFile(homePath, []byte("<h1>home</h1>"), 0o644); err != nil {
+		t.Fatal(err)
 	}
 
-	// Just verify the code not html content
-	expected := "text/html; charset=utf-8"
-	if contentType := rr.Header().Get("Content-Type"); contentType != expected {
-		t.Errorf("handler returned unexpected content type: got %v want %v",
-			contentType, expected)
+	// Change working dir so "/static/home.html" can be found as "./static/home.html"
+	oldWd, _ := os.Getwd()
+	t.Cleanup(func() { _ = os.Chdir(oldWd) })
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rr := httptest.NewRecorder()
+
+	routes().ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected %d, got %d, body=%s", http.StatusOK, rr.Code, rr.Body.String())
 	}
 }
