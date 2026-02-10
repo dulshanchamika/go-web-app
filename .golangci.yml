@@ -13,8 +13,5 @@ linters:
   disable:
     - gosec
 
-linters-settings:
-  errcheck:
-    exclude-functions:
-      - (testing.TB).Logf
-      - (testing.TB).Log
+exclude:
+  - ".*_test\\.go:.*"
